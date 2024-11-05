@@ -24,7 +24,7 @@ pipeline {
             steps {
                 echo 'Building application...'
                 // Add your build steps here, e.g., Maven, npm, etc.
-                // sh 'mvn clean install' // For example, if using Maven
+                sh 'mvn clean install' // For example, if using Maven
             }
         }
         
