@@ -32,14 +32,13 @@ pipeline {
             steps {
                 script {
                     // SonarQube scanner for Jenkins is used to run the analysis
-                    withSonarQubeEnv(SONARQUBE_SERVER) {
+                    withSonarQubeEnv(Sonar) {
                         // Adjust command according to your project language and structure
                         sh """
                         sonar-scanner \
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                           -Dsonar.projectName=${SONAR_PROJECT_NAME} \
-                          -Dsonar.sources=. \
-                          -Dsonar.host.url=${SONARQUBE_SERVER} \
+                          -Dsonar.sources=src/main/java \
                           -Dsonar.login=${SONAR_TOKEN}
                         """
                     }
