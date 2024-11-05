@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         // Replace 'your-sonarqube-server' with the name configured in Jenkins
-        SONARQUBE_SERVER = 'sonar'
+        SONARQUBE_SERVER = 'Sonar'
         // Set your SonarQube project key
         SONAR_PROJECT_KEY = 'jenkins-sonaa'
         // SonarQube project name (optional)
