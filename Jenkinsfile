@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        maven 'Maven' // Ensure this matches the name you set in the configuration
+    }
     
     environment {
         // Replace 'your-sonarqube-server' with the name configured in Jenkins
@@ -22,9 +25,7 @@ pipeline {
         
         stage('Build') {
             steps {
-                echo 'Building application...'
-                // Add your build steps here, e.g., Maven, npm, etc.
-                sh 'mvn clean install' // For example, if using Maven
+                sh 'mvn clean install'
             }
         }
         
