@@ -1,74 +1,50 @@
 pipeline {
-    agent any
-    tools {
-        maven 'Maven' // Ensure this matches the name you set in the configuration
+  agent any
+  environment {
+    // Required for Semgrep AppSec Platform-connected scan
+    SEMGREP_APP_TOKEN = credentials('SEMGREP_APP_TOKEN')
+  }
+  stages {
+    stage('Install Semgrep') {
+      steps {
+        // Install Semgrep tool
+        sh 'pip3 install semgrep'
+      }
     }
     
-    environment {
-        // Replace 'your-sonarqube-server' with the name configured in Jenkins
-        SONARQUBE_SERVER = 'Sonar'
-        // Set your SonarQube project key
-        SONAR_PROJECT_KEY = 'jenkins-sonaa'
-        // SonarQube project name (optional)
-        SONAR_PROJECT_NAME = 'jenkins-sonaa'
-        // Authentication token from SonarQube
-        SONAR_TOKEN = credentials('sonarqube') // Credential ID for SonarQube token in Jenkins
+    stage('Retrieve Rules') {
+      steps {
+        script {
+          // Retrieve rules from Semgrep registry (this command lists the rules and saves them in rules.json)
+          sh '/var/lib/jenkins/.local/bin/semgrep --config=auto --json > rules.json'
+        }
+      }
     }
 
-    stages {
-        stage('Checkout') {
-            steps {
-                echo 'Checking out code...'
-                checkout scm
-            }
+    stage('Run Semgrep Scan') {
+      steps {
+        script {
+          // Run the Semgrep scan in CI mode, which includes both code and supply chain scans
+          sh '/var/lib/jenkins/.local/bin/semgrep ci --json --no-suppress-errors -o results.json'
         }
-        
-        stage('Build') {
-            steps {
-                sh 'mvn clean install'
-            }
-        }
-        
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    // SonarQube scanner for Jenkins is used to run the analysis
-                    withSonarQubeEnv(Sonar) {
-                        // Adjust command according to your project language and structure
-                        sh """
-                        sonar-scanner \
-                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                          -Dsonar.projectName=${SONAR_PROJECT_NAME} \
-                          -Dsonar.sources=src/main/java \
-                          -Dsonar.login=${SONAR_TOKEN}
-                        """
-                    }
-                }
-            }
-        }
-        
-        stage('Quality Gate') {
-            steps {
-                // Wait for SonarQube to process the results
-                script {
-                    timeout(time: 2, unit: 'MINUTES') {
-                        waitForQualityGate abortPipeline: true
-                    }
-                }
-            }
-        }
+      }
     }
-    
-    post {
-        always {
-            echo 'Cleaning up...'
-            cleanWs() // Clean workspace after job
+
+    stage('Combine Results and Rules') {
+      steps {
+        script {
+          // Use jq or a similar tool to merge rules.json and results.json
+          // This command assumes jq is installed on your Jenkins instance
+          sh 'jq -s \'{"rules": .[0], "scan_results": .[1]}\' rules.json results.json > combined_results.json'
         }
-        success {
-            echo 'Pipeline succeeded.'
-        }
-        failure {
-            echo 'Pipeline failed.'
-        }
+      }
     }
+
+    stage('Archive Results') {
+      steps {
+        // Archive the combined_results.json file as an artifact in Jenkins
+        archiveArtifacts artifacts: 'combined_results.json', allowEmptyArchive: true
+      }
+    }
+  }
 }
